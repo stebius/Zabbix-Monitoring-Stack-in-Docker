@@ -26,5 +26,8 @@ This project provides a Docker Compose setup for deploying a complete Zabbix Mon
 
 1. Clone the repository:
    ```bash
-   git clone <repository_url>
+   git clone git@github.com:stebius/Zabbix-Monitoring-Stack-in-Docker.git
    cd zabbix-monitoring-stack
+   docker-compose up -d
+   ```
+
