@@ -1,0 +1,67 @@
+services:
+  postgres-server:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - zabbix_zabbix-net
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:latest
+    environment:
+      DB_SERVER_HOST: postgres-server
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_pass
+    volumes:
+      - ./certs:/var/lib/zabbix/ssl           # Folder for SSL certificates
+      - zabbix_data:/var/lib/zabbix           # Folder for Zabbix data
+    depends_on:
+      - postgres-server
+    ports:
+      - "10051:10051"  # Port for Zabbix Server
+    networks:
+      - zabbix_zabbix-net
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:latest
+    environment:
+      DB_SERVER_HOST: postgres-server
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_pass
+      ZBX_SERVER_HOST: zabbix-server
+      PHP_TZ: Europe/Moscow
+    depends_on:
+      - zabbix-server
+    ports:
+      - "8443:8443"
+      - "8080:8080"
+    volumes:
+      - ./certs:/etc/nginx/ssl  # Folder for web interface certificates
+    networks:
+      - zabbix_zabbix-net
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent:latest
+    environment:
+      ZBX_SERVER_HOST: zabbix-server   # Server name
+      ZBX_HOSTNAME: zabbix-agent       # Agent name on the server (must match the name in the web interface)
+    depends_on:
+      - zabbix-server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Access to the host Docker socket to collect data about the entire system
+    networks:
+      - zabbix_zabbix-net
+
+volumes:
+  pgdata:
+  zabbix_data:
+
+networks:
+  zabbix_zabbix-net:
+    external: true
